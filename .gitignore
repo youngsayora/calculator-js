@@ -1,0 +1,9 @@
+# phpstorm project files
+.idea
+
+# ENV files
+.env
+
+# composer vendor dir
+/vendor
+/node_modules
