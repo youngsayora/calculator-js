@@ -24,6 +24,15 @@ class EventDispatcher {
     }
 }
 
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+
 class CalculationHandler {
     modes = [];
 
@@ -48,17 +57,26 @@ class CalculationHandler {
         while (countIterations < 30 && context.isResultSuccess === false) {
             countIterations++;
             let succeedModes = [];
+            context.modeLog = [];
 
             this.dispatcher.emit('CALCULATION_STEP_START', { item: context, modes: this.modes });
 
+            this.modes = shuffleArray(this.modes);
+
             for (let mode of this.modes) {
-                this.dispatcher.emit('CALCULATION_MODE_START', { item: context, mode });
+                try {
+                    this.dispatcher.emit('CALCULATION_MODE_START', { item: context, mode });
 
-                mode.calculate(context);
+                    mode.calculate(context);
 
-                this.dispatcher.emit('CALCULATION_MODE_DONE', { item: context, mode });
+                    this.dispatcher.emit('CALCULATION_MODE_DONE', { item: context, mode });
 
-                succeedModes.push(mode.name);
+                    succeedModes.push(mode.name);
+
+                } catch (e) {
+                    break;
+                }
+
             }
 
             if (succeedModes.length !== this.modes.length) {
@@ -147,26 +165,27 @@ class Observer {
 }
 
 class ObserveCalculationDone extends Observer {
-constructor() {
-    super('ObserveCalculationDone');
-}
-
-update(data) {
-    if (data.item.isResultSuccess === false) {
-        console.log('Удачная комбинация не найдена');
+    constructor() {
+        super('ObserveCalculationDone');
     }
 
-    console.log('Найдена удачная комбинация: ');
-    console.log(`Число 1 - ${data.item.firstNumber}`);
-    console.log(`Число 2 - ${data.item.secondNumber}`);
-    console.log('Последовательность действий: ');
-    console.log(Object.keys(data.modes).join(', '));
-    console.log(`Выполнено итераций ${data.item.countIterations}`);
-    console.log('Лог выполнения: ');
-    console.log(data.item.modeLog.join('\n'));
-    console.log('Неудачные комбинации: ');
-    console.log(data.item.failLog.join('\n'));
-}
+    update(data) {
+        if (data.item.isResultSuccess === false) {
+            console.log('Удачная комбинация не найдена');
+            return;
+        }
+
+        console.log('Найдена удачная комбинация: ');
+        console.log(`Число 1 - ${data.item.firstNumber}`);
+        console.log(`Число 2 - ${data.item.secondNumber}`);
+        console.log('Последовательность действий: ');
+        console.log(data.modes.map(obj => obj.name).join(', '));
+        console.log(`Выполнено итераций ${data.item.countIterations}`);
+        console.log('Лог выполнения: ');
+        console.log(data.item.modeLog.join('\n'));
+        console.log('Неудачные комбинации: ');
+        console.log(data.item.failLog.join('\n'));
+    }
 }
 
 class ObserveCalculationModeDone extends Observer {
@@ -195,7 +214,7 @@ class ObserveCalculationStepFail extends Observer {
     }
 
     update(data) {
-        data.item.failLog.push(Object.keys(data.modes).join(', '));
+        data.item.failLog.push(data.modes.map(obj => obj.name).join(', '));
     }
 }
 
@@ -214,9 +233,10 @@ dispatcher.subscribe('CALCULATION_STEP_FAIL', new ObserveCalculationStepFail());
 dispatcher.subscribe('CALCULATION_DONE', new ObserveCalculationDone());
 
 let context = {
-    firstNumber: 300,
-    secondNumber: 99,
+    firstNumber: undefined,
+    secondNumber: undefined,
     total: 0,
+    isResultSuccess: false,
 };
 
 handler.handle(context);
