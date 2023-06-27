@@ -1,5 +1,10 @@
 export default class EventDispatcher {
+    static #instance;
     constructor() {
+        if (EventDispatcher.#instance) {
+            return EventDispatcher.#instance;
+        }
+        EventDispatcher.#instance = this;
         this.events = {};
     }
 
