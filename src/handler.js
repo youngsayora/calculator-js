@@ -58,6 +58,7 @@ class CalculationHandler {
             countIterations++;
             let succeedModes = [];
             context.modeLog = [];
+            context.total = 0;
 
             this.dispatcher.emit('CALCULATION_STEP_START', { item: context, modes: this.modes });
 
@@ -240,7 +241,3 @@ let context = {
 };
 
 handler.handle(context);
-
-$(document).ready(function() {
-    $('#app').text('');
-});
